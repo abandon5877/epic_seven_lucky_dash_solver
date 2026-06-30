@@ -208,7 +208,7 @@
         }
         .flowchart-container {
             overflow-x: auto;
-            padding: 16px 0;
+            padding: 12px 0 8px;
         }
         .flowchart {
             display: flex;
@@ -293,12 +293,12 @@
         }
         .flow-block .reward-badge {
             display: inline-block;
-            font-size: 10px;
-            padding: 1px 5px;
+            font-size: 13px;
+            padding: 3px 8px;
             background: #d1fae5;
             color: #059669;
-            border-radius: 4px;
-            font-weight: 600;
+            border-radius: 6px;
+            font-weight: 700;
         }
         .flow-block .flow-props {
             font-size: 10px;
@@ -441,19 +441,20 @@
             cursor: pointer;
         }
         .one-image-btn {
-            margin-left: 12px;
-            padding: 5px 12px;
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            color: #667eea;
-            font-size: 12px;
+            padding: 8px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 2px 8px rgba(102,126,234,0.3);
         }
         .one-image-btn:hover {
-            background: #eef2ff;
-            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102,126,234,0.4);
         }
         @media (max-width: 480px) {
             .one-image-overlay {
@@ -513,11 +514,11 @@
                 <div class="form-group" id="reward-weights-group" style="display: none;">
                     <label>奖励权重</label>
                     <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px;">
-                        <div><label style="font-size:11px;color:#555;">30装</label><input type="number" id="rw-100" value="1" min="0" style="width:100%;padding:6px;border:1px solid #ddd;border-radius:6px;font-size:13px;"></div>
-                        <div><label style="font-size:11px;color:#555;">32装</label><input type="number" id="rw-200" value="2" min="0" style="width:100%;padding:6px;border:1px solid #ddd;border-radius:6px;font-size:13px;"></div>
-                        <div><label style="font-size:11px;color:#555;">34装</label><input type="number" id="rw-300" value="4" min="0" style="width:100%;padding:6px;border:1px solid #ddd;border-radius:6px;font-size:13px;"></div>
-                        <div><label style="font-size:11px;color:#555;">36装</label><input type="number" id="rw-350" value="8" min="0" style="width:100%;padding:6px;border:1px solid #ddd;border-radius:6px;font-size:13px;"></div>
-                        <div><label style="font-size:11px;color:#555;">38装</label><input type="number" id="rw-450" value="16" min="0" style="width:100%;padding:6px;border:1px solid #ddd;border-radius:6px;font-size:13px;"></div>
+                        <div><label style="font-size:13px;color:#333;font-weight:500;">30装</label><input type="number" id="rw-100" value="1" min="0" style="width:100%;padding:6px;border:1px solid #ddd;border-radius:6px;font-size:13px;"></div>
+                        <div><label style="font-size:13px;color:#333;font-weight:500;">32装</label><input type="number" id="rw-200" value="2" min="0" style="width:100%;padding:6px;border:1px solid #ddd;border-radius:6px;font-size:13px;"></div>
+                        <div><label style="font-size:13px;color:#333;font-weight:500;">34装</label><input type="number" id="rw-300" value="4" min="0" style="width:100%;padding:6px;border:1px solid #ddd;border-radius:6px;font-size:13px;"></div>
+                        <div><label style="font-size:13px;color:#333;font-weight:500;">36装</label><input type="number" id="rw-350" value="8" min="0" style="width:100%;padding:6px;border:1px solid #ddd;border-radius:6px;font-size:13px;"></div>
+                        <div><label style="font-size:13px;color:#333;font-weight:500;">38装</label><input type="number" id="rw-450" value="16" min="0" style="width:100%;padding:6px;border:1px solid #ddd;border-radius:6px;font-size:13px;"></div>
                     </div>
                     <button id="reset-weights-btn" type="button" style="margin-top:8px;padding:5px 12px;font-size:12px;background:white;border:1px solid #ddd;border-radius:6px;cursor:pointer;color:#667eea;">重置权重</button>
                 </div>
@@ -587,6 +588,18 @@
                     <div id="forecast-info" style="margin-top: 10px; font-size: 12px; color: #666;"></div>
                 </div>
 
+                <div class="card" id="flowchart-card" style="display: none; min-width: 0;">
+                    <h2 style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                        <span>操作流程概览（主线最优路径）</span>
+                        <button id="one-image-btn" class="one-image-btn" style="display: none;">生成一图流</button>
+                    </h2>
+                    <div id="flowchart-container" class="flowchart-container">
+                        <div style="text-align: center; color: #999; padding: 20px;">点击"开始计算"获取结果</div>
+                    </div>
+                    <div id="failure-branch-detail"></div>
+
+                </div>
+
                 <div class="card" id="mc-card" style="display: none;">
                     <h2>蒙特卡洛验证</h2>
                     <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
@@ -606,24 +619,6 @@
                         </tbody>
                     </table>
                     <div id="mc-info" style="margin-top: 12px; font-size: 12px; color: #666; text-align: right;"></div>
-                </div>
-
-                <div class="card" id="flowchart-card" style="display: none; min-width: 0;">
-                    <h2 style="display: flex; align-items: center; justify-content: space-between;">
-                        <span>操作流程概览（主线最优路径）</span>
-                        <button id="one-image-btn" class="one-image-btn" style="display: none;">生成一图流</button>
-                    </h2>
-                    <div id="flowchart-container" class="flowchart-container">
-                        <div style="text-align: center; color: #999; padding: 20px;">点击"开始计算"获取结果</div>
-                    </div>
-                    <div id="failure-branch-detail"></div>
-                    <div class="flow-legend">
-                        <div class="flow-legend-item"><span class="flow-legend-color" style="background: #3b82f6;"></span>普通奔跑</div>
-                        <div class="flow-legend-item"><span class="flow-legend-color" style="background: #8b5cf6;"></span>防护奔跑（失败可重试）</div>
-                        <div class="flow-legend-item"><span class="flow-legend-color" style="background: #f59e0b;"></span>助跑</div>
-                        <div class="flow-legend-item"><span class="flow-legend-color" style="background: #10b981;"></span>超级幸运</div>
-                        <div class="flow-legend-item"><span class="flow-legend-color" style="background: #059669;"></span>到达目标</div>
-                    </div>
                 </div>
             </div>
         </div>
