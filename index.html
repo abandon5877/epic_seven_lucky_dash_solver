@@ -1,0 +1,1949 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>幸运冲刺最优策略求解器</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .title-section {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        .title-section h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        .title-section p {
+            opacity: 0.8;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+        @media (min-width: 1024px) {
+            .grid {
+                grid-template-columns: 1fr 2fr;
+            }
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+            padding: 24px;
+        }
+        .card h2 {
+            font-size: 20px;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 8px;
+        }
+        .level-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        .level-buttons button {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .level-buttons button:hover {
+            border-color: #667eea;
+        }
+        .level-buttons button.active {
+            border-color: #667eea;
+            background: #eef2ff;
+            color: #667eea;
+        }
+        .form-group input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        .radio-group {
+            display: flex;
+            gap: 20px;
+        }
+        .radio-group label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+        .btn-primary {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102,126,234,0.4);
+        }
+        .btn-primary:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+        .info-box {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 20px;
+        }
+        .info-box h3 {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        .info-box p {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 4px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        @media (min-width: 768px) {
+            .stats-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+        .stat-card {
+            padding: 16px;
+            border-radius: 12px;
+            color: white;
+            text-align: center;
+        }
+        .stat-card .label {
+            font-size: 12px;
+            opacity: 0.8;
+            margin-bottom: 8px;
+        }
+        .stat-card .value {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .stat-card.purple { background: linear-gradient(135deg, #8b5cf6, #6366f1); }
+        .stat-card.green { background: linear-gradient(135deg, #10b981, #059669); }
+        .stat-card.orange { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .stat-card.blue { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+        .path-step {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            border-radius: 0 8px 8px 0;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+        .path-step .title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        .path-step .info {
+            font-size: 12px;
+            color: #666;
+            display: flex;
+            gap: 16px;
+            margin-bottom: 8px;
+        }
+        .path-step .progress-bar {
+            height: 6px;
+            background: #ddd;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .path-step .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transition: width 0.5s;
+        }
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .flowchart-container {
+            overflow-x: auto;
+            padding: 16px 0;
+        }
+        .flowchart {
+            display: flex;
+            align-items: stretch;
+            gap: 0;
+            min-width: max-content;
+        }
+        .flow-block {
+            flex: 0 0 auto;
+            width: 140px;
+            padding: 12px 10px;
+            border-radius: 10px;
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            text-align: center;
+            position: relative;
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+        }
+        .flow-block:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .flow-block.run { border-left-color: #3b82f6; background: #eff6ff; }
+        .flow-block.run-prot { border-left-color: #8b5cf6; background: #faf5ff; }
+        .flow-block.boost { border-left-color: #f59e0b; background: #fffbeb; }
+        .flow-block.lucky { border-left-color: #10b981; background: #ecfdf5; }
+        .flow-block.target { border-left-color: #059669; background: #d1fae5; }
+        .flow-block.end-block { border-left-color: #ef4444; background: #fef2f2; }
+        .flow-block.merged {
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            border-left-width: 5px;
+        }
+        .flow-block .flow-pos {
+            font-size: 15px;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 6px;
+            letter-spacing: -0.3px;
+            font-variant-numeric: tabular-nums;
+        }
+        .flow-block .flow-action {
+            font-size: 11px;
+            color: #4b5563;
+            margin: 0 auto 8px;
+            padding: 3px 10px;
+            background: rgba(0,0,0,0.06);
+            border-radius: 10px;
+            display: inline-block;
+            font-weight: 500;
+            line-height: 1.4;
+        }
+        .flow-block .flow-rate {
+            font-size: 14px;
+            font-weight: 700;
+            color: #4f46e5;
+            margin-bottom: 3px;
+            font-variant-numeric: tabular-nums;
+        }
+        .flow-block .flow-cum {
+            font-size: 10px;
+            color: #6b7280;
+            font-variant-numeric: tabular-nums;
+        }
+        .flow-block .flow-fail-summary {
+            font-size: 10px;
+            color: #dc2626;
+            margin-top: 6px;
+            padding: 3px 6px;
+            background: rgba(239,68,68,0.1);
+            border-radius: 4px;
+            line-height: 1.3;
+        }
+        .flow-block .flow-rewards {
+            margin-top: 6px;
+            display: flex;
+            justify-content: center;
+            gap: 2px;
+            flex-wrap: wrap;
+        }
+        .flow-block .reward-badge {
+            display: inline-block;
+            font-size: 10px;
+            padding: 1px 5px;
+            background: #d1fae5;
+            color: #059669;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+        .flow-block .flow-props {
+            font-size: 10px;
+            color: #6b7280;
+            margin-bottom: 6px;
+            letter-spacing: 0.3px;
+            font-variant-numeric: tabular-nums;
+        }
+        .flow-arrow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            color: #9ca3af;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+        .flow-legend {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+            padding: 10px 12px;
+            font-size: 11px;
+            color: #666;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .flow-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .flow-legend-color {
+            width: 14px;
+            height: 4px;
+            border-radius: 2px;
+        }
+
+        /* 一图流（手机截图） */
+        .one-image-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.75);
+            z-index: 1000;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .one-image-overlay.active {
+            display: flex;
+        }
+        .one-image-card {
+            background: #f8f9fa;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 320px;
+            padding: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .one-image-header {
+            text-align: center;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        .one-image-header h3 {
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 2px;
+        }
+        .one-image-header p {
+            font-size: 11px;
+            color: #666;
+        }
+        .one-image-step {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            background: white;
+            border-radius: 10px;
+            padding: 10px 12px;
+            margin-bottom: 6px;
+            border-left: 3px solid #e5e7eb;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+        }
+        .one-image-step .step-pos {
+            font-size: 14px;
+            font-weight: bold;
+            color: #111;
+            min-width: 42px;
+        }
+        .one-image-step .step-action {
+            flex: 1;
+            font-size: 13px;
+            font-weight: bold;
+            padding: 5px 10px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .one-image-step .step-note {
+            font-size: 11px;
+            font-weight: normal;
+            opacity: 0.85;
+            margin-left: 4px;
+        }
+        .one-image-step.run { border-left-color: #3b82f6; }
+        .one-image-step.run .step-action { background: #eff6ff; color: #2563eb; }
+        .one-image-step.run-prot { border-left-color: #8b5cf6; }
+        .one-image-step.run-prot .step-action { background: #f5f3ff; color: #7c3aed; }
+        .one-image-step.boost { border-left-color: #f59e0b; }
+        .one-image-step.boost .step-action { background: #fffbeb; color: #b45309; }
+        .one-image-step.lucky { border-left-color: #10b981; }
+        .one-image-step.lucky .step-action { background: #ecfdf5; color: #059669; }
+        .one-image-step.target { border-left-color: #059669; background: #ecfdf5; }
+        .one-image-step.target .step-action { background: #d1fae5; color: #047857; }
+        .one-image-footer {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 10px;
+            color: #888;
+        }
+        .one-image-close {
+            display: block;
+            width: 100%;
+            margin-top: 12px;
+            padding: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .one-image-btn {
+            margin-left: 12px;
+            padding: 5px 12px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            color: #667eea;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .one-image-btn:hover {
+            background: #eef2ff;
+            border-color: #667eea;
+        }
+        @media (max-width: 480px) {
+            .one-image-overlay {
+                padding: 0;
+                align-items: flex-start;
+            }
+            .one-image-card {
+                max-width: 100%;
+                border-radius: 0;
+                padding: 14px;
+                min-height: 100vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="title-section">
+            <h1>幸运冲刺最优策略求解器</h1>
+            <p>输入等级和目标距离，获取最优奔跑方案</p>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <h2>参数设置</h2>
+                <div class="form-group">
+                    <label>超级幸运等级</label>
+                    <div class="level-buttons">
+                        <button class="level-btn" data-level="1">Lv.1</button>
+                        <button class="level-btn" data-level="2">Lv.2</button>
+                        <button class="level-btn" data-level="3">Lv.3</button>
+                        <button class="level-btn" data-level="4">Lv.4</button>
+                        <button class="level-btn active" data-level="5">Lv.5</button>
+                    </div>
+                    <input type="hidden" id="level" value="5">
+                </div>
+
+                <div class="form-group" id="target-group">
+                    <label>目标距离（米）</label>
+                    <input type="number" id="target" value="300" min="100" max="500" step="10">
+                </div>
+
+                <div class="form-group">
+                    <label>优化目标</label>
+                    <div class="radio-group">
+                        <label>
+                            <input type="radio" name="objective" value="max_reward" checked>
+                            <span>循环刷装备</span>
+                        </label>
+                        <label>
+                            <input type="radio" name="objective" value="min_ep">
+                            <span>冲距离</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group" id="reward-weights-group" style="display: none;">
+                    <label>奖励权重</label>
+                    <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px;">
+                        <div><label style="font-size:11px;color:#555;">30装</label><input type="number" id="rw-100" value="1" min="0" style="width:100%;padding:6px;border:1px solid #ddd;border-radius:6px;font-size:13px;"></div>
+                        <div><label style="font-size:11px;color:#555;">32装</label><input type="number" id="rw-200" value="2" min="0" style="width:100%;padding:6px;border:1px solid #ddd;border-radius:6px;font-size:13px;"></div>
+                        <div><label style="font-size:11px;color:#555;">34装</label><input type="number" id="rw-300" value="4" min="0" style="width:100%;padding:6px;border:1px solid #ddd;border-radius:6px;font-size:13px;"></div>
+                        <div><label style="font-size:11px;color:#555;">36装</label><input type="number" id="rw-350" value="8" min="0" style="width:100%;padding:6px;border:1px solid #ddd;border-radius:6px;font-size:13px;"></div>
+                        <div><label style="font-size:11px;color:#555;">38装</label><input type="number" id="rw-450" value="16" min="0" style="width:100%;padding:6px;border:1px solid #ddd;border-radius:6px;font-size:13px;"></div>
+                    </div>
+                    <button id="reset-weights-btn" type="button" style="margin-top:8px;padding:5px 12px;font-size:12px;background:white;border:1px solid #ddd;border-radius:6px;cursor:pointer;color:#667eea;">重置权重</button>
+                </div>
+
+                <button id="calculate-btn" class="btn-primary">
+                    <span>开始计算</span>
+                </button>
+
+                <div class="form-group" style="margin-top: 20px; margin-bottom: 0;">
+                    <label id="mc-label">蒙特卡洛验证</label>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="number" id="mc-simulations" value="100000" min="1000" max="1000000" step="1000" style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                        <span id="mc-unit" style="font-size: 12px; color: #666;">次</span>
+                        <button id="mc-validate-btn" class="btn-primary" style="flex: 1; padding: 10px; font-size: 14px;" disabled>
+                            <span>蒙特卡洛验证</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="info-box">
+                    <h3>等级说明</h3>
+                    <div id="level-info">
+                        <p>Lv.5：初始幸运x2，最大x2，补充点150m</p>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 20px; min-width: 0;">
+                <div class="card">
+                    <h2>计算结果</h2>
+                    <div class="stats-grid">
+                        <div class="stat-card purple">
+                            <div class="label">总体成功率</div>
+                            <div class="value" id="success-rate">--</div>
+                        </div>
+                        <div class="stat-card green">
+                            <div class="label">期望能量消耗</div>
+                            <div class="value" id="energy-consumption">--</div>
+                        </div>
+                        <div class="stat-card orange">
+                            <div class="label">目标距离</div>
+                            <div class="value" id="target-distance">--</div>
+                        </div>
+                        <div class="stat-card blue">
+                            <div class="label">优化目标</div>
+                            <div class="value" id="optimization-target">--</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" id="reward-forecast-card" style="display: none;">
+                    <h2>预计装备获取（基于能量预算）</h2>
+                    <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                        <thead>
+                            <tr style="background: #f8f9fa;">
+                                <th style="padding: 8px; text-align: left; border-bottom: 2px solid #ddd;">装备节点</th>
+                                <th style="padding: 8px; text-align: right; border-bottom: 2px solid #ddd;">权重</th>
+                                <th style="padding: 8px; text-align: right; border-bottom: 2px solid #ddd;">跨越概率</th>
+                                <th style="padding: 8px; text-align: right; border-bottom: 2px solid #ddd;">预计件数</th>
+                                <th style="padding: 8px; text-align: right; border-bottom: 2px solid #ddd;">件数/能量</th>
+                            </tr>
+                        </thead>
+                        <tbody id="forecast-table-body">
+                            <tr><td colspan="5" style="padding: 20px; text-align: center; color: #999;">点击"开始计算"获取结果</td></tr>
+                        </tbody>
+                    </table>
+                    <div id="forecast-info" style="margin-top: 10px; font-size: 12px; color: #666;"></div>
+                </div>
+
+                <div class="card" id="mc-card" style="display: none;">
+                    <h2>蒙特卡洛验证</h2>
+                    <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                        <thead>
+                            <tr style="background: #f8f9fa;">
+                                <th style="padding: 8px; text-align: left; border-bottom: 2px solid #ddd;">指标</th>
+                                <th style="padding: 8px; text-align: right; border-bottom: 2px solid #ddd;">DP 结果</th>
+                                <th style="padding: 8px; text-align: right; border-bottom: 2px solid #ddd;">MC 结果</th>
+                                <th style="padding: 8px; text-align: right; border-bottom: 2px solid #ddd;">偏差</th>
+                                <th style="padding: 8px; text-align: center; border-bottom: 2px solid #ddd;">状态</th>
+                            </tr>
+                        </thead>
+                        <tbody id="mc-table-body">
+                            <tr>
+                                <td colspan="5" style="padding: 20px; text-align: center; color: #999;">点击"蒙特卡洛验证"按钮开始</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div id="mc-info" style="margin-top: 12px; font-size: 12px; color: #666; text-align: right;"></div>
+                </div>
+
+                <div class="card" id="flowchart-card" style="display: none; min-width: 0;">
+                    <h2 style="display: flex; align-items: center; justify-content: space-between;">
+                        <span>操作流程概览（主线最优路径）</span>
+                        <button id="one-image-btn" class="one-image-btn" style="display: none;">生成一图流</button>
+                    </h2>
+                    <div id="flowchart-container" class="flowchart-container">
+                        <div style="text-align: center; color: #999; padding: 20px;">点击"开始计算"获取结果</div>
+                    </div>
+                    <div id="failure-branch-detail"></div>
+                    <div class="flow-legend">
+                        <div class="flow-legend-item"><span class="flow-legend-color" style="background: #3b82f6;"></span>普通奔跑</div>
+                        <div class="flow-legend-item"><span class="flow-legend-color" style="background: #8b5cf6;"></span>防护奔跑（失败可重试）</div>
+                        <div class="flow-legend-item"><span class="flow-legend-color" style="background: #f59e0b;"></span>助跑</div>
+                        <div class="flow-legend-item"><span class="flow-legend-color" style="background: #10b981;"></span>超级幸运</div>
+                        <div class="flow-legend-item"><span class="flow-legend-color" style="background: #059669;"></span>到达目标</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 一图流弹窗 -->
+    <div id="one-image-overlay" class="one-image-overlay" onclick="closeOneImage(event)">
+        <div class="one-image-card" onclick="event.stopPropagation()">
+            <div class="one-image-header" style="text-align: center; position: relative;">
+                <h3 style="margin: 0;">幸运冲刺 · 最优路线</h3>
+                <p id="one-image-subtitle" style="margin: 4px 0 0;">Lv.5 · 循环刷装备</p>
+                <p id="one-image-weights" style="margin: 4px 0 0; font-size: 13px; color: #222;"></p>
+                <span style="position: absolute; right: 0; top: 0; font-size: 10px; color: #bbb;">by abandon</span>
+            </div>
+            <div id="one-image-content" class="one-image-content"></div>
+            <div class="one-image-footer">按手机截图键保存本图</div>
+            <button class="one-image-close" onclick="closeOneImage()">关闭</button>
+        </div>
+    </div>
+
+    <script>
+        class LuckyRushSolver {
+            constructor(level, target, start_shield = 2, start_boost = 1) {
+                this.target = target;
+                this.start_shield = start_shield;
+                this.start_boost = start_boost;
+                this.success_rates = {
+                    10: 0.96, 20: 0.92, 30: 0.88, 40: 0.84, 50: 0.80,
+                    60: 0.75, 70: 0.70, 80: 0.65, 90: 0.60, 100: 0.75,
+                    110: 0.69, 120: 0.63, 130: 0.56, 140: 0.50, 150: 0.70,
+                    160: 0.64, 170: 0.58, 180: 0.51, 190: 0.45, 200: 0.67,
+                    210: 0.61, 220: 0.55, 230: 0.49, 240: 0.43, 250: 0.63,
+                    290: 0.41,
+                };
+                this.lucky_levels = {
+                    1: { start_count: 1, max_count: 1, refill_point: 200, req_energy: 50 },
+                    2: { start_count: 1, max_count: 1, refill_point: 180, req_energy: 100 },
+                    3: { start_count: 1, max_count: 2, refill_point: 180, req_energy: 150 },
+                    4: { start_count: 1, max_count: 2, refill_point: 150, req_energy: 250 },
+                    5: { start_count: 2, max_count: 2, refill_point: 150, req_energy: 350 },
+                };
+                this.level = level;
+                this.level_info = this.lucky_levels[level];
+                this.refill_point = this.level_info.refill_point;
+                this.max_lucky = this.level_info.max_count;
+                this.start_lucky = this.level_info.start_count;
+                this.energy_per_run = 1;
+                this.energy_per_lucky = 3;
+                this.memo_p = {};
+                this.memo_e = {};
+                this.memo_action = {};
+            }
+            get_success_rate(pos) {
+                if (pos <= 0) return 1.0;
+                if (this.success_rates[pos] !== undefined) return this.success_rates[pos];
+                const distances = Object.keys(this.success_rates).map(Number).sort((a, b) => a - b);
+                if (pos < distances[0]) return this.success_rates[distances[0]];
+                if (pos > distances[distances.length - 1]) {
+                    const d1 = distances[distances.length - 2];
+                    const d2 = distances[distances.length - 1];
+                    const r1 = this.success_rates[d1];
+                    const r2 = this.success_rates[d2];
+                    const slope = (r2 - r1) / (d2 - d1);
+                    return Math.max(0.05, r2 + slope * (pos - d2));
+                }
+                let lower = distances[0];
+                let upper = distances[distances.length - 1];
+                for (const d of distances) {
+                    if (d <= pos && d > lower) lower = d;
+                    if (d >= pos && d < upper) upper = d;
+                }
+                if (lower === upper) return this.success_rates[lower];
+                const r_lower = this.success_rates[lower];
+                const r_upper = this.success_rates[upper];
+                const rate = r_lower + (r_upper - r_lower) * (pos - lower) / (upper - lower);
+                return Math.max(0.0, Math.min(1.0, rate));
+            }
+            milestone_rewards(old_pos, new_pos, shield, boost) {
+                let new_shield = shield;
+                let new_boost = boost;
+                for (let milestone = 100; milestone <= new_pos; milestone += 100) {
+                    if (milestone > old_pos) {
+                        new_shield = Math.min(new_shield + 2, 4);
+                        new_boost += 1;
+                    }
+                }
+                return [new_shield, new_boost];
+            }
+            refill_lucky(old_pos, new_pos, lucky) {
+                if (new_pos >= this.refill_point && old_pos < this.refill_point) {
+                    return Math.min(this.max_lucky, lucky + 1);
+                }
+                return lucky;
+            }
+            cap_state(state) {
+                const [pos, shield, boost, lucky] = state;
+                const max_shield = 4;
+                const max_boost = this.start_boost + Math.floor(this.target / 100);
+                return [pos, Math.min(shield, max_shield), Math.min(boost, max_boost), Math.min(lucky, this.max_lucky)];
+            }
+            enumerate_states() {
+                const max_shield = 4;
+                const max_boost = this.start_boost + Math.floor(this.target / 100);
+                const states = [];
+                for (let pos = 0; pos <= this.target; pos += 10) {
+                    for (let shield = 0; shield <= max_shield; shield++) {
+                        for (let boost = 0; boost <= max_boost; boost++) {
+                            for (let lucky = 0; lucky <= this.max_lucky; lucky++) {
+                                states.push([pos, shield, boost, lucky]);
+                            }
+                        }
+                    }
+                }
+                return states;
+            }
+            get_actions(state) {
+                const [pos, shield, boost, lucky] = state;
+                const actions = [];
+                if (pos >= this.target) return actions;
+                const q = Math.min(pos + 10, this.target);
+                if (this.get_success_rate(pos) > 0) {
+                    actions.push(['run', q, false]);
+                    if (shield > 0) actions.push(['run', q, true]);
+                }
+                if (boost > 0 && pos >= 10) actions.push(['boost']);
+                if (lucky > 0) actions.push(['lucky']);
+                return actions;
+            }
+            action_cost(action) {
+                return action[0] === 'lucky' ? this.energy_per_lucky : this.energy_per_run;
+            }
+            get_success_state(state, action) {
+                const [pos, shield, boost, lucky] = state;
+                if (action[0] === 'run') {
+                    const [, q, use_shield] = action;
+                    const used_shield = use_shield ? shield - 1 : shield;
+                    const [ns, nb] = this.milestone_rewards(pos, q, used_shield, boost);
+                    const nl = this.refill_lucky(pos, q, lucky);
+                    return [q, ns, nb, nl];
+                } else if (action[0] === 'boost') {
+                    const new_pos = Math.min(pos + 30, this.target);
+                    const [ns, nb] = this.milestone_rewards(pos, new_pos, shield, boost - 1);
+                    const nl = this.refill_lucky(pos, new_pos, lucky);
+                    return [new_pos, ns, nb, nl];
+                } else if (action[0] === 'lucky') {
+                    const new_pos = Math.min(pos + 30, this.target);
+                    const [ns, nb] = this.milestone_rewards(pos, new_pos, shield, boost);
+                    const nl = this.refill_lucky(pos, new_pos, lucky - 1);
+                    return [new_pos, ns, nb, nl];
+                }
+                return state;
+            }
+            get_failure_state(state, action) {
+                const [pos, shield, boost, lucky] = state;
+                if (action[0] === 'run') {
+                    const [, , use_shield] = action;
+                    if (use_shield) return [pos, shield - 1, boost, lucky];
+                    return [0, this.start_shield, this.start_boost, this.start_lucky];
+                } else if (action[0] === 'boost') {
+                    return [pos, shield, boost - 1, lucky];
+                } else if (action[0] === 'lucky') {
+                    return [pos, shield, boost, lucky - 1];
+                }
+                return state;
+            }
+            immediate_success_rate(state, action) {
+                if (action[0] === 'run') return this.get_success_rate(state[0]);
+                if (action[0] === 'boost') return this.get_success_rate(state[0] - 10);
+                if (action[0] === 'lucky') return 1.0;
+                return 0.0;
+            }
+            solve(start_state) {
+                const states = this.enumerate_states();
+                const P = {};
+                const E = {};
+                const action = {};
+                
+                for (const s of states) {
+                    const key = JSON.stringify(s);
+                    if (s[0] >= this.target) {
+                        P[key] = 1.0;
+                        E[key] = 0.0;
+                        action[key] = null;
+                    } else {
+                        P[key] = 0.0;
+                        E[key] = 0.0;
+                        action[key] = null;
+                    }
+                }
+                
+                const max_iter = 2000;
+                const eps = 1e-10;
+                
+                for (let iter = 0; iter < max_iter; iter++) {
+                    let max_diff = 0.0;
+                    
+                    for (const s of states) {
+                        const pos = s[0];
+                        if (pos >= this.target) continue;
+                        
+                        const key = JSON.stringify(s);
+                        const [, shield, boost, lucky] = s;
+                        
+                        let best_p = -1.0, best_e = Infinity, best_action = null;
+                        const q = Math.min(pos + 10, this.target);
+                        const rate = this.get_success_rate(pos);
+                        
+                        if (rate > 0) {
+                            const [ns, nb] = this.milestone_rewards(pos, q, shield, boost);
+                            const nl = this.refill_lucky(pos, q, lucky);
+                            const success_state = this.cap_state([q, ns, nb, nl]);
+                            const success_key = JSON.stringify(success_state);
+                            
+                            const fail_state = this.cap_state([0, this.start_shield, this.start_boost, this.start_lucky]);
+                            const fail_key = JSON.stringify(fail_state);
+                            
+                            const p = rate * P[success_key] + (1 - rate) * P[fail_key];
+                            const e = this.energy_per_run + rate * E[success_key] + (1 - rate) * E[fail_key];
+                            
+                            if (p > best_p + 1e-12 || (Math.abs(p - best_p) <= 1e-12 && e < best_e - 1e-12)) {
+                                best_p = p; best_e = e; best_action = ['run', q, false];
+                            }
+                        }
+                        
+                        if (shield > 0 && rate > 0) {
+                            const [ns_prot, nb_prot] = this.milestone_rewards(pos, q, shield - 1, boost);
+                            const nl_prot = this.refill_lucky(pos, q, lucky);
+                            const success_state_prot = this.cap_state([q, ns_prot, nb_prot, nl_prot]);
+                            const fail_state = this.cap_state([pos, shield - 1, boost, lucky]);
+                            
+                            const success_key = JSON.stringify(success_state_prot);
+                            const fail_key = JSON.stringify(fail_state);
+                            
+                            const p = rate * P[success_key] + (1 - rate) * P[fail_key];
+                            const e = this.energy_per_run + rate * E[success_key] + (1 - rate) * E[fail_key];
+                            
+                            if (p > best_p + 1e-12 || (Math.abs(p - best_p) <= 1e-12 && e < best_e - 1e-12)) {
+                                best_p = p; best_e = e; best_action = ['run', q, true];
+                            }
+                        }
+                        
+                        if (boost > 0 && pos >= 10) {
+                            const back_pos = pos - 10;
+                            const boost_rate = this.get_success_rate(back_pos);
+                            if (boost_rate > 0) {
+                                const new_pos = Math.min(pos + 30, this.target);
+                                const [ns_b, nb_b] = this.milestone_rewards(pos, new_pos, shield, boost - 1);
+                                const nl_b = this.refill_lucky(pos, new_pos, lucky);
+                                const success_state_b = this.cap_state([new_pos, ns_b, nb_b, nl_b]);
+                                const success_key = JSON.stringify(success_state_b);
+                                
+                                const fail_state_b = this.cap_state([0, this.start_shield, this.start_boost, this.start_lucky]);
+                                const fail_key_b = JSON.stringify(fail_state_b);
+                                
+                                const p = boost_rate * P[success_key] + (1 - boost_rate) * P[fail_key_b];
+                                const e = this.energy_per_run + boost_rate * E[success_key] + (1 - boost_rate) * E[fail_key_b];
+                                
+                                if (p > best_p + 1e-12 || (Math.abs(p - best_p) <= 1e-12 && e < best_e - 1e-12)) {
+                                    best_p = p; best_e = e; best_action = ['boost'];
+                                }
+                            }
+                        }
+                        
+                        if (lucky > 0) {
+                            const new_pos = Math.min(pos + 30, this.target);
+                            const [ns_l, nb_l] = this.milestone_rewards(pos, new_pos, shield, boost);
+                            const nl_l = this.refill_lucky(pos, new_pos, lucky - 1);
+                            const success_state_l = this.cap_state([new_pos, ns_l, nb_l, nl_l]);
+                            const success_key = JSON.stringify(success_state_l);
+                            
+                            const p = 1.0 * P[success_key];
+                            const e = this.energy_per_lucky + E[success_key];
+                            
+                            if (p > best_p + 1e-12 || (Math.abs(p - best_p) <= 1e-12 && e < best_e - 1e-12)) {
+                                best_p = p; best_e = e; best_action = ['lucky'];
+                            }
+                        }
+                        
+                        if (best_action) {
+                            const diff = Math.max(Math.abs(P[key] - best_p), Math.abs(E[key] - best_e));
+                            max_diff = Math.max(max_diff, diff);
+                            P[key] = best_p;
+                            E[key] = best_e;
+                            action[key] = best_action;
+                        }
+                    }
+                    
+                    if (max_diff < eps) break;
+                }
+                
+                this.memo_p = P;
+                this.memo_e = E;
+                this.memo_action = action;
+                
+                const start_key = JSON.stringify(start_state);
+                return [P[start_key], E[start_key]];
+            }
+            solve_lambda(lam, max_iter = 2000, eps = 1e-10) {
+                const states = this.enumerate_states();
+                const BIG = 1e6;
+                const F = {};
+                const policy = {};
+                for (const s of states) {
+                    const key = JSON.stringify(s);
+                    F[key] = s[0] >= this.target ? (-lam) : BIG;
+                    policy[key] = null;
+                }
+                for (let iter = 0; iter < max_iter; iter++) {
+                    let max_diff = 0.0;
+                    for (const s of states) {
+                        const pos = s[0];
+                        if (pos >= this.target) continue;
+                        let best_f = Infinity, best_action = null;
+                        for (const action of this.get_actions(s)) {
+                            const cost = this.action_cost(action);
+                            const success_state = this.cap_state(this.get_success_state(s, action));
+                            const rate = this.immediate_success_rate(s, action);
+                            let f_val;
+                            if ((action[0] === 'run' || action[0] === 'boost') && !(action[0] === 'run' && action[2])) {
+                                f_val = cost + rate * F[JSON.stringify(success_state)];
+                            } else {
+                                const fail_state = this.cap_state(this.get_failure_state(s, action));
+                                f_val = cost + rate * F[JSON.stringify(success_state)] + (1 - rate) * F[JSON.stringify(fail_state)];
+                            }
+                            if (f_val < best_f - 1e-12) { best_f = f_val; best_action = action; }
+                        }
+                        if (best_f < Infinity) {
+                            const key = JSON.stringify(s);
+                            const diff = Math.abs(F[key] - best_f);
+                            if (diff > max_diff) max_diff = diff;
+                            F[key] = best_f;
+                            policy[key] = best_action;
+                        }
+                    }
+                    if (max_diff < eps) break;
+                }
+                return [F, policy];
+            }
+            evaluate_policy(policy, max_iter = 2000, eps = 1e-10) {
+                const states = this.enumerate_states();
+                const P = {};
+                const E = {};
+                for (const s of states) {
+                    const key = JSON.stringify(s);
+                    P[key] = s[0] >= this.target ? 1.0 : 0.0;
+                    E[key] = 0.0;
+                }
+                for (let iter = 0; iter < max_iter; iter++) {
+                    let max_diff = 0.0;
+                    for (const s of states) {
+                        const pos = s[0];
+                        if (pos >= this.target) continue;
+                        const key = JSON.stringify(s);
+                        const action = policy[key];
+                        if (!action) continue;
+                        const cost = this.action_cost(action);
+                        const success_state = this.cap_state(this.get_success_state(s, action));
+                        const rate = this.immediate_success_rate(s, action);
+                        let new_p, new_e;
+                        if ((action[0] === 'run' || action[0] === 'boost') && !(action[0] === 'run' && action[2])) {
+                            new_p = rate * P[JSON.stringify(success_state)];
+                            new_e = cost + rate * E[JSON.stringify(success_state)];
+                        } else {
+                            const fail_state = this.cap_state(this.get_failure_state(s, action));
+                            new_p = rate * P[JSON.stringify(success_state)] + (1 - rate) * P[JSON.stringify(fail_state)];
+                            new_e = cost + rate * E[JSON.stringify(success_state)] + (1 - rate) * E[JSON.stringify(fail_state)];
+                        }
+                        max_diff = Math.max(max_diff, Math.abs(P[key] - new_p), Math.abs(E[key] - new_e));
+                        P[key] = new_p;
+                        E[key] = new_e;
+                    }
+                    if (max_diff < eps) break;
+                }
+                const start_state = [0, this.start_shield, this.start_boost, this.start_lucky];
+                return [P[JSON.stringify(start_state)], E[JSON.stringify(start_state)]];
+            }
+            solve_min_ep(max_iter = 50, eps = 1e-9) {
+                let lam = 0.0;
+                let best_policy = null;
+                let best_p = 0.0, best_e = Infinity;
+                for (let iter = 0; iter < max_iter; iter++) {
+                    const [F, policy] = this.solve_lambda(lam);
+                    const [p, e] = this.evaluate_policy(policy);
+                    if (p <= 1e-12) break;
+                    best_p = p; best_e = e; best_policy = policy;
+                    const new_lam = e / p;
+                    if (Math.abs(new_lam - lam) < eps) break;
+                    lam = new_lam;
+                }
+                return [best_p, best_e, best_policy];
+            }
+            build_tree(start_state, policy, visited, depth) {
+                const stack = [];
+                const result_map = {};
+                const max_depth = 50;
+                
+                stack.push({
+                    state: start_state,
+                    policy: policy,
+                    visited: visited || {},
+                    depth: depth || 0,
+                    parent_key: null,
+                    child_index: 0,
+                    phase: 'init',
+                    node_data: null
+                });
+                
+                while (stack.length > 0) {
+                    const frame = stack[stack.length - 1];
+                    const key = JSON.stringify(frame.state);
+                    const [pos, shield, boost, lucky] = frame.state;
+                    
+                    if (frame.depth > max_depth) {
+                        const node = {
+                            type: 'end',
+                            label: pos + 'm (深度限制)',
+                            badge: '...',
+                            children: []
+                        };
+                        result_map[key] = node;
+                        stack.pop();
+                        continue;
+                    }
+                    
+                    if (frame.phase === 'init') {
+                        if (frame.visited[key]) {
+                            stack.pop();
+                            continue;
+                        }
+                        frame.visited[key] = true;
+                        
+                        if (pos >= this.target) {
+                            const node = {
+                                type: 'target',
+                                label: pos + 'm 到达目标',
+                                badge: '100%',
+                                children: []
+                            };
+                            result_map[key] = node;
+                            stack.pop();
+                            continue;
+                        }
+                        
+                        const action = policy[key] || this.memo_action[key];
+                        if (!action) {
+                            const node = {
+                                type: 'end',
+                                label: pos + 'm 无可行动作',
+                                badge: '0%',
+                                children: []
+                            };
+                            result_map[key] = node;
+                            stack.pop();
+                            continue;
+                        }
+                        
+                        const rate = this.immediate_success_rate(frame.state, action);
+                        const success_state = this.cap_state(this.get_success_state(frame.state, action));
+                        const fail_state = this.cap_state(this.get_failure_state(frame.state, action));
+                        
+                        let action_name = '';
+                        if (action[0] === 'run') {
+                            action_name = action[2] ? '防护奔跑' : '普通奔跑';
+                        } else if (action[0] === 'boost') {
+                            action_name = '助跑';
+                        } else if (action[0] === 'lucky') {
+                            action_name = '超级幸运';
+                        }
+                        
+                        frame.node_data = {
+                            type: 'node',
+                            label: pos + 'm → ' + success_state[0] + 'm [' + action_name + ']',
+                            badge: (rate * 100).toFixed(1) + '%',
+                            children: [],
+                            success_state: success_state,
+                            fail_state: fail_state,
+                            action: action
+                        };
+                        
+                        frame.phase = 'success';
+                        stack.push({
+                            state: success_state,
+                            policy: policy,
+                            visited: frame.visited,
+                            depth: frame.depth + 1,
+                            parent_key: key,
+                            child_type: 'success',
+                            phase: 'init',
+                            node_data: null
+                        });
+                    } else if (frame.phase === 'success') {
+                        frame.phase = 'failure';
+                        const action = frame.node_data.action;
+                        const fail_state = frame.node_data.fail_state;
+                        
+                        if ((action[0] === 'run' && action[2]) || action[0] === 'lucky') {
+                            stack.push({
+                                state: fail_state,
+                                policy: policy,
+                                visited: frame.visited,
+                                depth: frame.depth + 1,
+                                parent_key: key,
+                                child_type: 'failure',
+                                is_root_reset: false,
+                                phase: 'init',
+                                node_data: null
+                            });
+                        } else if (action[0] === 'run' || action[0] === 'boost') {
+                            if (fail_state[0] === 0) {
+                                const fail_key = JSON.stringify(fail_state);
+                                if (!result_map[fail_key]) {
+                                    result_map[fail_key] = {
+                                        type: 'target',
+                                        label: '返回起点重新开始',
+                                        badge: '...',
+                                        children: []
+                                    };
+                                }
+                            } else {
+                                stack.push({
+                                    state: fail_state,
+                                    policy: policy,
+                                    visited: frame.visited,
+                                    depth: frame.depth + 1,
+                                    parent_key: key,
+                                    child_type: 'failure',
+                                    is_root_reset: false,
+                                    phase: 'init',
+                                    node_data: null
+                                });
+                            }
+                        }
+                    } else if (frame.phase === 'failure') {
+                        const children = [];
+                        const success_key = JSON.stringify(frame.node_data.success_state);
+                        if (result_map[success_key]) {
+                            children.push({
+                                type: 'success',
+                                child: result_map[success_key]
+                            });
+                        }
+                        
+                        const action = frame.node_data.action;
+                        const fail_state = frame.node_data.fail_state;
+                        
+                        if ((action[0] === 'run' && action[2]) || action[0] === 'lucky') {
+                            const fail_key = JSON.stringify(fail_state);
+                            if (result_map[fail_key]) {
+                                children.push({
+                                    type: 'failure',
+                                    child: result_map[fail_key],
+                                    is_root_reset: false
+                                });
+                            }
+                        } else if (action[0] === 'run' || action[0] === 'boost') {
+                            const fail_key = JSON.stringify(fail_state);
+                            if (result_map[fail_key]) {
+                                children.push({
+                                    type: 'failure',
+                                    child: result_map[fail_key],
+                                    is_root_reset: fail_state[0] === 0
+                                });
+                            }
+                        }
+                        
+                        frame.node_data.children = children;
+                        result_map[key] = frame.node_data;
+                        stack.pop();
+                    }
+                }
+                
+                const start_key = JSON.stringify(start_state);
+                return result_map[start_key] || null;
+            }
+        }
+
+        function formatState(state) {
+            return '(' + state[0] + 'm, 防' + state[1] + ', 助' + state[2] + ', 幸' + state[3] + ')';
+        }
+
+        function formatAction(action) {
+            if (action[0] === 'run') {
+                return action[2] ? '防护奔跑' : '普通奔跑';
+            } else if (action[0] === 'boost') {
+                return '助跑';
+            } else if (action[0] === 'lucky') {
+                return '超级幸运';
+            }
+            return '未知';
+        }
+
+        function buildPathSummary(solver, policy, target) {
+            const path = [];
+            let state = [0, solver.start_shield, solver.start_boost, solver.start_lucky];
+            let cumulative_p = 1.0;
+            let cumulative_e = 0.0;
+            
+            while (state[0] < target) {
+                const key = JSON.stringify(state);
+                const action = policy[key] || solver.memo_action[key];
+                if (!action) break;
+                
+                const rate = solver.immediate_success_rate(state, action);
+                const cost = solver.action_cost(action);
+                const success_state = solver.cap_state(solver.get_success_state(state, action));
+                
+                cumulative_p *= rate;
+                cumulative_e += cost;
+                
+                path.push({
+                    state: state.slice(),
+                    action: action,
+                    rate: rate,
+                    next_state: success_state,
+                    cumulative_p: cumulative_p,
+                    cumulative_e: cumulative_e
+                });
+                
+                state = success_state;
+            }
+            
+            return path;
+        }
+        
+        function getSuccessRate(pos) {
+            const success_rates = {
+                10: 0.96, 20: 0.92, 30: 0.88, 40: 0.84, 50: 0.80,
+                60: 0.75, 70: 0.70, 80: 0.65, 90: 0.60, 100: 0.75,
+                110: 0.69, 120: 0.63, 130: 0.56, 140: 0.50, 150: 0.70,
+                160: 0.64, 170: 0.58, 180: 0.51, 190: 0.45, 200: 0.67,
+                210: 0.61, 220: 0.55, 230: 0.49, 240: 0.43, 250: 0.63,
+                290: 0.41,
+            };
+            if (pos <= 0) return 1.0;
+            if (success_rates[pos] !== undefined) return success_rates[pos];
+            const distances = Object.keys(success_rates).map(Number).sort((a, b) => a - b);
+            if (pos < distances[0]) return success_rates[distances[0]];
+            if (pos > distances[distances.length - 1]) {
+                const d1 = distances[distances.length - 2];
+                const d2 = distances[distances.length - 1];
+                const slope = (success_rates[d2] - success_rates[d1]) / (d2 - d1);
+                return Math.max(0.05, success_rates[d2] + slope * (pos - d2));
+            }
+            let lower = distances[0], upper = distances[distances.length - 1];
+            for (const d of distances) {
+                if (d <= pos && d > lower) lower = d;
+                if (d >= pos && d < upper) upper = d;
+            }
+            const rate = success_rates[lower] + (success_rates[upper] - success_rates[lower]) * (pos - lower) / (upper - lower);
+            return Math.max(0.0, Math.min(1.0, rate));
+        }
+        
+        function milestoneRewards(old_pos, new_pos, shield, boost) {
+            let new_shield = shield;
+            let new_boost = boost;
+            for (let milestone = 100; milestone <= new_pos; milestone += 100) {
+                if (milestone > old_pos) {
+                    new_shield = Math.min(new_shield + 2, 4);
+                    new_boost += 1;
+                }
+            }
+            return [new_shield, new_boost];
+        }
+
+        let failureNodes = [];
+        let currentFailureIdx = -1;
+        let lastParams = null;
+        let currentMainPath = null;
+
+        function extractMainPath(node) {
+            const path = [];
+            let current = node;
+            while (current) {
+                path.push(current);
+                if (current.type === 'target' || current.type === 'end') break;
+                current = current.success;
+            }
+            return path;
+        }
+
+        function summarizeFailure(node) {
+            if (!node || !node.failure) return '';
+            let protCount = 0;
+            let lastAction = null;
+            let current = node.failure;
+            while (current && current.type !== 'end' && current.type !== 'target') {
+                const action = current.action;
+                if (!action) break;
+                if (action[0] === 'run' && action[2]) {
+                    protCount++;
+                    current = current.failure;
+                } else {
+                    if (action[0] === 'run') lastAction = '普通奔跑';
+                    else if (action[0] === 'boost') lastAction = '助跑';
+                    else lastAction = '超级幸运';
+                    break;
+                }
+            }
+            const parts = [];
+            if (protCount > 0) parts.push('防护×' + protCount);
+            if (lastAction) parts.push(lastAction);
+            else if (current && current.type === 'end') parts.push('结束');
+            return parts.length > 0 ? '失败后: ' + parts.join('→') : '';
+        }
+
+        function renderOneImage(path) {
+            if (!path || path.length === 0) return '<div style="text-align: center; color: #999; padding: 20px;">无路径数据</div>';
+
+            function stepClass(action) {
+                if (!action || action[0] === 'target') return 'target';
+                if (action[0] === 'run') return action[2] ? 'run-prot' : 'run';
+                if (action[0] === 'boost') return 'boost';
+                return 'lucky';
+            }
+
+
+
+            function actionHtml(node, count) {
+                const action = node.action;
+                let mainText;
+                if (!action || action[0] === 'target') mainText = '到达目标';
+                else if (action[0] === 'run') mainText = action[2] ? '防护奔跑' : '普通奔跑';
+                else if (action[0] === 'boost') mainText = '助跑';
+                else mainText = '超级幸运';
+                if (count > 1) mainText += ' ×' + count;
+
+                let note = '';
+                if (action[0] === 'run' && action[2]) {
+                    let failSummary = summarizeFailure(node).replace('失败后:', '失败：');
+                    failSummary = failSummary.replace(/防护×/g, '防');
+                    if (failSummary) note = '<span class="step-note">（' + failSummary + '）</span>';
+                }
+                return mainText + note;
+            }
+
+            function isPlainRun(node) {
+                return node && node.action && node.action[0] === 'run' && !node.action[2];
+            }
+
+            let html = '';
+            let i = 0;
+            while (i < path.length) {
+                const node = path[i];
+
+                if (node.type === 'target') {
+                    html += '<div class="one-image-step target">';
+                    html += '<div class="step-pos">' + node.state[0] + 'm</div>';
+                    html += '<div class="step-action">到达目标</div>';
+                    html += '</div>';
+                    i++;
+                } else if (node.type === 'end') {
+                    html += '<div class="one-image-step" style="border-left-color: #9ca3af;">';
+                    html += '<div class="step-pos">' + (node.label || '结束') + '</div>';
+                    html += '<div class="step-action">游戏结束</div>';
+                    html += '</div>';
+                    i++;
+                } else if (isPlainRun(node)) {
+                    let j = i;
+                    while (j < path.length && isPlainRun(path[j])) j++;
+                    const count = j - i;
+                    const startNode = path[i];
+                    const startPos = startNode.state[0];
+
+                    html += '<div class="one-image-step run">';
+                    html += '<div class="step-pos">' + startPos + 'm</div>';
+                    html += '<div class="step-action">' + actionHtml(startNode, count) + '</div>';
+                    html += '</div>';
+                    i = j;
+                } else {
+                    const pos = node.state[0];
+                    html += '<div class="one-image-step ' + stepClass(node.action) + '">';
+                    html += '<div class="step-pos">' + pos + 'm</div>';
+                    html += '<div class="step-action">' + actionHtml(node, 1) + '</div>';
+                    html += '</div>';
+                    i++;
+                }
+            }
+            return html;
+        }
+
+        function showOneImage() {
+            if (!currentMainPath || currentMainPath.length === 0) return;
+            const params = lastParams || {};
+            const level = params.level || 5;
+            const objectiveText = params.objective === 'max_reward' ? '循环刷装备' : '冲距离';
+            const target = params.objective === 'max_reward' ? '' : ' · ' + (params.target || '?') + 'm';
+            document.getElementById('one-image-subtitle').textContent = 'Lv.' + level + ' · ' + objectiveText + target;
+            const weightsEl = document.getElementById('one-image-weights');
+            if (params.objective === 'max_reward' && params.reward_weights) {
+                const w = params.reward_weights;
+                weightsEl.textContent = '权重: 30装=' + w[100] + ', 32装=' + w[200] + ', 34装=' + w[300] + ', 36装=' + w[350] + ', 38装=' + w[450];
+            } else {
+                weightsEl.textContent = '';
+            }
+            document.getElementById('one-image-content').innerHTML = renderOneImage(currentMainPath);
+            document.getElementById('one-image-overlay').classList.add('active');
+        }
+
+        function closeOneImage(event) {
+            if (event && event.target !== event.currentTarget) return;
+            document.getElementById('one-image-overlay').classList.remove('active');
+        }
+
+        function renderFlowchart(path, interactive) {
+            if (interactive === undefined) interactive = true;
+            if (!path || path.length === 0) return '<div style="text-align: center; color: #999; padding: 20px;">无路径数据</div>';
+
+            function getRewardBadges(pos, nextPos) {
+                if (!lastParams || !lastParams.reward_weights) return '';
+                if (typeof nextPos !== 'number') return '';
+                const weights = lastParams.reward_weights;
+                let badges = '';
+                for (const node of [100, 200, 300, 350, 450]) {
+                    if (nextPos >= node && pos < node && weights[node]) {
+                        badges += '<span class="reward-badge">+' + weights[node] + '</span>';
+                    }
+                }
+                return badges ? '<div class="flow-rewards">' + badges + '</div>' : '';
+            }
+
+            function formatProps(state) {
+                const [, shield, boost, lucky] = state;
+                return '<div class="flow-props">防' + shield + ' 助' + boost + ' 幸' + lucky + '</div>';
+            }
+
+            function isPlainRun(n) {
+                return n && n.type !== 'target' && n.type !== 'end' && n.action && n.action[0] === 'run' && !n.action[2];
+            }
+
+            if (interactive) failureNodes = [];
+            let html = '<div class="flowchart">';
+            let i = 0;
+            while (i < path.length) {
+                const node = path[i];
+
+                if (node.type === 'target') {
+                    html += '<div class="flow-block target">';
+                    html += '<div class="flow-pos">' + node.state[0] + 'm</div>';
+                    html += '<div class="flow-action">到达目标</div>';
+                    html += '<div class="flow-rate">100%</div>';
+                    html += '<div class="flow-cum">累计 ' + (node.cumulative_rate * 100).toFixed(2) + '%</div>';
+                    html += '</div>';
+                    i++;
+                } else if (node.type === 'end') {
+                    html += '<div class="flow-block end-block">';
+                    html += '<div class="flow-pos">' + (node.label || '结束') + '</div>';
+                    html += '<div class="flow-action">游戏结束</div>';
+                    html += '<div class="flow-cum">累计 ' + (node.cumulative_rate * 100).toFixed(2) + '%</div>';
+                    html += '</div>';
+                    i++;
+                } else if (isPlainRun(node)) {
+                    // 合并连续的普通奔跑
+                    const group = [node];
+                    let j = i + 1;
+                    while (j < path.length && isPlainRun(path[j])) {
+                        group.push(path[j]);
+                        j++;
+                    }
+                    const startPos = group[0].state[0];
+                    const lastNode = group[group.length - 1];
+                    const endPos = lastNode.success ? lastNode.success.state[0] : '?';
+                    const finalCumulative = lastNode.cumulative_rate;
+                    const firstRate = group[0].rate;
+                    const lastRate = lastNode.rate;
+
+                    const mergedClass = group.length > 1 ? ' merged' : '';
+                    html += '<div class="flow-block run' + mergedClass + '">';
+                    html += '<div class="flow-pos">' + startPos + 'm → ' + endPos + 'm</div>';
+                    html += formatProps(group[0].state);
+                    if (group.length > 1) {
+                        html += '<div class="flow-action">普通奔跑 ×' + group.length + '</div>';
+                        if (Math.abs(firstRate - lastRate) < 0.005) {
+                            html += '<div class="flow-rate">' + (firstRate * 100).toFixed(1) + '%</div>';
+                        } else {
+                            html += '<div class="flow-rate">' + (firstRate * 100).toFixed(0) + '%~' + (lastRate * 100).toFixed(0) + '%</div>';
+                        }
+                    } else {
+                        html += '<div class="flow-action">普通奔跑</div>';
+                        html += '<div class="flow-rate">' + (node.rate * 100).toFixed(1) + '%</div>';
+                    }
+                    html += '<div class="flow-cum">累计 ' + (finalCumulative * 100).toFixed(2) + '%</div>';
+                    html += getRewardBadges(startPos, typeof endPos === 'number' ? endPos : -1);
+                    html += '</div>';
+                    i = j;
+                } else {
+                    const [pos, shield, boost, lucky] = node.state;
+                    const action = node.action;
+                    let actionText, blockClass;
+
+                    if (action[0] === 'run') {
+                        actionText = '防护奔跑';
+                        blockClass = 'run-prot';
+                    } else if (action[0] === 'boost') {
+                        actionText = '助跑';
+                        blockClass = 'boost';
+                    } else {
+                        actionText = '超级幸运';
+                        blockClass = 'lucky';
+                    }
+
+                    const nextPos = node.success ? node.success.state[0] : '?';
+                    const isProt = action[0] === 'run' && action[2];
+                    let clickAttr = '';
+                    let extraHtml = '';
+
+                    if (isProt && node.failure) {
+                        const summary = summarizeFailure(node);
+                        if (summary) {
+                            extraHtml = '<div class="flow-fail-summary">' + summary + '</div>';
+                        }
+                        if (interactive) {
+                            const failIdx = failureNodes.length;
+                            failureNodes.push(node);
+                            clickAttr = ' onclick="toggleFailureBranch(' + failIdx + ')" style="cursor: pointer;"';
+                        }
+                    }
+
+                    html += '<div class="flow-block ' + blockClass + '"' + clickAttr + '>';
+                    html += '<div class="flow-pos">' + pos + 'm → ' + nextPos + 'm</div>';
+                    html += formatProps(node.state);
+                    html += '<div class="flow-action">' + actionText + '</div>';
+                    html += '<div class="flow-rate">' + (node.rate * 100).toFixed(1) + '%</div>';
+                    html += '<div class="flow-cum">累计 ' + (node.cumulative_rate * 100).toFixed(2) + '%</div>';
+                    html += extraHtml;
+                    html += getRewardBadges(pos, typeof nextPos === 'number' ? nextPos : -1);
+                    html += '</div>';
+                    i++;
+                }
+
+                if (i < path.length) {
+                    html += '<div class="flow-arrow">→</div>';
+                }
+            }
+            html += '</div>';
+            return html;
+        }
+
+        function toggleFailureBranch(idx) {
+            const detailDiv = document.getElementById('failure-branch-detail');
+            if (currentFailureIdx === idx) {
+                detailDiv.innerHTML = '';
+                currentFailureIdx = -1;
+                return;
+            }
+            currentFailureIdx = idx;
+            const node = failureNodes[idx];
+            detailDiv.innerHTML = renderFailureDetail(node);
+        }
+
+        function renderFailureDetail(node) {
+            if (!node || !node.failure) return '';
+            const failPath = extractMainPath(node.failure);
+            const startState = node.failure.state;
+            let html = '<div style="margin-top: 16px; padding: 14px; background: #fef2f2; border-radius: 10px; border-left: 4px solid #ef4444;">';
+            html += '<div style="font-size: 13px; color: #dc2626; margin-bottom: 10px; font-weight: bold;">' + node.state[0] + 'm 防护奔跑失败后的策略（从 ' + startState[0] + 'm, 防' + startState[1] + ', 助' + startState[2] + ', 幸' + startState[3] + ' 开始，点击色块可收起）：</div>';
+            html += '<div style="overflow-x: auto;">' + renderFlowchart(failPath, false) + '</div>';
+            html += '<div style="font-size: 11px; color: #888; margin-top: 8px;">注：此为失败后沿成功路径到目标的流程；其中防护奔跑的失败分支未展开（避免递归过深）。</div>';
+            html += '</div>';
+            return html;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const levelButtons = document.querySelectorAll('.level-btn');
+            const levelInput = document.getElementById('level');
+            const levelInfo = document.getElementById('level-info');
+            const calculateBtn = document.getElementById('calculate-btn');
+            const mcValidateBtn = document.getElementById('mc-validate-btn');
+            const mcSimulationsInput = document.getElementById('mc-simulations');
+
+            const levelDescriptions = {
+                1: 'Lv.1：初始幸运x1，最大x1，补充点200m',
+                2: 'Lv.2：初始幸运x1，最大x1，补充点180m',
+                3: 'Lv.3：初始幸运x1，最大x2，补充点180m',
+                4: 'Lv.4：初始幸运x1，最大x2，补充点150m',
+                5: 'Lv.5：初始幸运x2，最大x2，补充点150m'
+            };
+            
+            levelButtons.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    levelButtons.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    levelInput.value = this.dataset.level;
+                    levelInfo.innerHTML = '<p>' + levelDescriptions[this.dataset.level] + '</p>';
+                });
+            });
+
+            // 优化目标切换：max_reward 显示权重配置区并锁定目标距离为 450
+            const targetInput = document.getElementById('target');
+            const rewardWeightsGroup = document.getElementById('reward-weights-group');
+            const objectiveRadios = document.querySelectorAll('input[name="objective"]');
+            const defaultWeights = { 100: 1, 200: 2, 300: 4, 350: 8, 450: 16 };
+
+            function updateObjectiveUI() {
+                const objective = document.querySelector('input[name="objective"]:checked').value;
+                const mcLabel = document.getElementById('mc-label');
+                const mcUnit = document.getElementById('mc-unit');
+                const targetGroup = document.getElementById('target-group');
+                if (objective === 'max_reward') {
+                    rewardWeightsGroup.style.display = 'block';
+                    targetGroup.style.display = 'none';
+                    targetInput.value = 450;
+                    mcLabel.textContent = '能量预算';
+                    mcUnit.textContent = '能量';
+                    mcSimulationsInput.value = 100000;
+                    mcSimulationsInput.min = 1000;
+                    mcSimulationsInput.max = 10000000;
+                } else {
+                    rewardWeightsGroup.style.display = 'none';
+                    targetGroup.style.display = 'block';
+                    mcLabel.textContent = '蒙特卡洛验证';
+                    mcUnit.textContent = '次';
+                    mcSimulationsInput.value = 100000;
+                    mcSimulationsInput.min = 1000;
+                    mcSimulationsInput.max = 1000000;
+                }
+            }
+            objectiveRadios.forEach(r => r.addEventListener('change', updateObjectiveUI));
+            updateObjectiveUI(); // 初始状态同步（默认选中 max_reward）
+
+            document.getElementById('reset-weights-btn').addEventListener('click', function() {
+                for (const node of [100, 200, 300, 350, 450]) {
+                    document.getElementById('rw-' + node).value = defaultWeights[node];
+                }
+            });
+
+            document.getElementById('one-image-btn').addEventListener('click', showOneImage);
+
+            function renderMcResult(dpP, dpE, mcResult) {
+                // 恢复 max_p/min_ep 模式的表头
+                const mcCard = document.getElementById('mc-card');
+                const thRow = mcCard.querySelector('thead tr');
+                thRow.innerHTML = '<th style="padding: 8px; text-align: left; border-bottom: 2px solid #ddd;">指标</th>'
+                    + '<th style="padding: 8px; text-align: right; border-bottom: 2px solid #ddd;">DP 结果</th>'
+                    + '<th style="padding: 8px; text-align: right; border-bottom: 2px solid #ddd;">MC 结果</th>'
+                    + '<th style="padding: 8px; text-align: right; border-bottom: 2px solid #ddd;">偏差</th>'
+                    + '<th style="padding: 8px; text-align: center; border-bottom: 2px solid #ddd;">状态</th>';
+
+                const mcP = mcResult.mc_p;
+                const mcE = mcResult.mc_e;
+                const dpERatio = dpP > 0 ? dpE / dpP : Infinity;
+                const mcERatio = mcP > 0 ? mcE / mcP : Infinity;
+
+                const pDiff = Math.abs(dpP - mcP);
+                const eDiff = Math.abs(dpE - mcE);
+                const eRatioDiff = Math.abs(dpERatio - mcERatio);
+
+                const pPass = pDiff < 0.005;
+                const ePass = eDiff < Math.max(0.2, dpE * 0.05);
+                const eRatioPass = eRatioDiff < Math.max(0.5, dpERatio * 0.05);
+
+                const fmtP = (v) => (v * 100).toFixed(4) + '%';
+                const fmtE = (v) => v.toFixed(4);
+                const badge = (pass) => pass
+                    ? '<span style="color: #059669; font-weight: bold;">✓</span>'
+                    : '<span style="color: #dc2626; font-weight: bold;">✗</span>';
+
+                let html = '';
+                html += '<tr>';
+                html += '<td style="padding: 8px; border-bottom: 1px solid #eee;">成功率 P</td>';
+                html += '<td style="padding: 8px; text-align: right; border-bottom: 1px solid #eee;">' + fmtP(dpP) + '</td>';
+                html += '<td style="padding: 8px; text-align: right; border-bottom: 1px solid #eee;">' + fmtP(mcP) + '</td>';
+                html += '<td style="padding: 8px; text-align: right; border-bottom: 1px solid #eee;">' + fmtP(pDiff) + '</td>';
+                html += '<td style="padding: 8px; text-align: center; border-bottom: 1px solid #eee;">' + badge(pPass) + '</td>';
+                html += '</tr>';
+                html += '<tr>';
+                html += '<td style="padding: 8px; border-bottom: 1px solid #eee;">单局期望能量 E</td>';
+                html += '<td style="padding: 8px; text-align: right; border-bottom: 1px solid #eee;">' + fmtE(dpE) + '</td>';
+                html += '<td style="padding: 8px; text-align: right; border-bottom: 1px solid #eee;">' + fmtE(mcE) + '</td>';
+                html += '<td style="padding: 8px; text-align: right; border-bottom: 1px solid #eee;">' + fmtE(eDiff) + '</td>';
+                html += '<td style="padding: 8px; text-align: center; border-bottom: 1px solid #eee;">' + badge(ePass) + '</td>';
+                html += '</tr>';
+                html += '<tr>';
+                html += '<td style="padding: 8px;">直到成功的总能量 E/P</td>';
+                html += '<td style="padding: 8px; text-align: right;">' + fmtE(dpERatio) + '</td>';
+                html += '<td style="padding: 8px; text-align: right;">' + fmtE(mcERatio) + '</td>';
+                html += '<td style="padding: 8px; text-align: right;">' + fmtE(eRatioDiff) + '</td>';
+                html += '<td style="padding: 8px; text-align: center;">' + badge(eRatioPass) + '</td>';
+                html += '</tr>';
+
+                document.getElementById('mc-table-body').innerHTML = html;
+                document.getElementById('mc-info').textContent = '模拟次数: ' + mcResult.n_simulations.toLocaleString() + ' | 阈值: P<0.5%, E<5%, E/P<5%';
+            }
+
+            function renderMcRewardResult(dpR, dpE, dpNodeProbs, mcResult, energyBudget, rewardWeights) {
+                // max_reward 模式 MC 验证：装备件数对比 + R/E 对比
+                const fmt = (v) => v.toFixed(2);
+                const fmt4 = (v) => v.toFixed(4);
+                const badge = (pass) => pass
+                    ? '<span style="color: #059669; font-weight: bold;">✓</span>'
+                    : '<span style="color: #dc2626; font-weight: bold;">✗</span>';
+
+                const nodes = [100, 200, 300, 350, 450];
+                let html = '';
+                let dpTotalCount = 0, mcTotalCount = 0;
+                for (const n of nodes) {
+                    const weight = rewardWeights[n] || 0;
+                    const prob = dpNodeProbs ? (dpNodeProbs[n] || 0) : 0;
+                    const dpCount = dpE > 1e-12 ? energyBudget * prob / dpE : 0;
+                    const mcCount = mcResult.counts[n] || 0;
+                    const diff = Math.abs(dpCount - mcCount);
+                    const pass = diff < Math.max(1, dpCount * 0.05);
+                    dpTotalCount += dpCount;
+                    mcTotalCount += mcCount;
+                    html += '<tr>';
+                    html += '<td style="padding: 8px; border-bottom: 1px solid #eee;">' + n + 'm 装备 (权重' + weight + ')</td>';
+                    html += '<td style="padding: 8px; text-align: right; border-bottom: 1px solid #eee;">' + fmt(dpCount) + '</td>';
+                    html += '<td style="padding: 8px; text-align: right; border-bottom: 1px solid #eee;">' + mcCount + '</td>';
+                    html += '<td style="padding: 8px; text-align: right; border-bottom: 1px solid #eee;">' + fmt(diff) + '</td>';
+                    html += '<td style="padding: 8px; text-align: center; border-bottom: 1px solid #eee;">' + badge(pass) + '</td>';
+                    html += '</tr>';
+                }
+                // 总件数对比行
+                const totalDiff = Math.abs(dpTotalCount - mcTotalCount);
+                const totalPass = totalDiff < Math.max(1, dpTotalCount * 0.05);
+                html += '<tr style="background: #f8f9fa; font-weight: bold;">';
+                html += '<td style="padding: 8px; border-top: 2px solid #ddd;">总件数</td>';
+                html += '<td style="padding: 8px; text-align: right; border-top: 2px solid #ddd;">' + fmt(dpTotalCount) + '</td>';
+                html += '<td style="padding: 8px; text-align: right; border-top: 2px solid #ddd;">' + mcTotalCount + '</td>';
+                html += '<td style="padding: 8px; text-align: right; border-top: 2px solid #ddd;">' + fmt(totalDiff) + '</td>';
+                html += '<td style="padding: 8px; text-align: center; border-top: 2px solid #ddd;">' + badge(totalPass) + '</td>';
+                html += '</tr>';
+                // R/E 对比行
+                const dpRE = dpE > 1e-12 ? dpR / dpE : 0;
+                const mcRE = mcResult.energy_used > 1e-12 ? mcResult.total_reward / mcResult.energy_used : 0;
+                const reDiff = Math.abs(dpRE - mcRE);
+                const rePass = reDiff < Math.max(0.01, dpRE * 0.05);
+                html += '<tr>';
+                html += '<td style="padding: 8px; border-bottom: 1px solid #eee;">总奖励 R</td>';
+                html += '<td style="padding: 8px; text-align: right; border-bottom: 1px solid #eee;">' + fmt(dpR) + '</td>';
+                html += '<td style="padding: 8px; text-align: right; border-bottom: 1px solid #eee;">' + fmt(mcResult.total_reward) + '</td>';
+                html += '<td style="padding: 8px; text-align: right; border-bottom: 1px solid #eee;">' + fmt(Math.abs(dpR - mcResult.total_reward)) + '</td>';
+                html += '<td style="padding: 8px; text-align: center; border-bottom: 1px solid #eee;">-</td>';
+                html += '</tr>';
+                html += '<tr>';
+                html += '<td style="padding: 8px;">R/E 比</td>';
+                html += '<td style="padding: 8px; text-align: right;">' + fmt4(dpRE) + '</td>';
+                html += '<td style="padding: 8px; text-align: right;">' + fmt4(mcRE) + '</td>';
+                html += '<td style="padding: 8px; text-align: right;">' + fmt4(reDiff) + '</td>';
+                html += '<td style="padding: 8px; text-align: center;">' + badge(rePass) + '</td>';
+                html += '</tr>';
+
+                // 更新表头为 max_reward 语义
+                const mcCard = document.getElementById('mc-card');
+                const thRow = mcCard.querySelector('thead tr');
+                thRow.innerHTML = '<th style="padding: 8px; text-align: left; border-bottom: 2px solid #ddd;">装备节点</th>'
+                    + '<th style="padding: 8px; text-align: right; border-bottom: 2px solid #ddd;">DP 预计</th>'
+                    + '<th style="padding: 8px; text-align: right; border-bottom: 2px solid #ddd;">MC 模拟</th>'
+                    + '<th style="padding: 8px; text-align: right; border-bottom: 2px solid #ddd;">偏差</th>'
+                    + '<th style="padding: 8px; text-align: center; border-bottom: 2px solid #ddd;">状态</th>';
+
+                document.getElementById('mc-table-body').innerHTML = html;
+                document.getElementById('mc-info').textContent = '能量预算: ' + energyBudget.toLocaleString() + ' | 模拟局数: ' + mcResult.games.toLocaleString() + ' | 实际消耗: ' + mcResult.energy_used.toLocaleString() + ' | 阈值: 件数偏差<5%, R/E<5%';
+            }
+            
+            calculateBtn.addEventListener('click', function() {
+                const level = parseInt(levelInput.value);
+                const target = parseInt(document.getElementById('target').value);
+                const objective = document.querySelector('input[name="objective"]:checked').value;
+
+                if (!level || !target) return;
+
+                // max_reward 模式收集奖励权重
+                let reward_weights = null;
+                if (objective === 'max_reward') {
+                    reward_weights = {
+                        100: parseInt(document.getElementById('rw-100').value) || 0,
+                        200: parseInt(document.getElementById('rw-200').value) || 0,
+                        300: parseInt(document.getElementById('rw-300').value) || 0,
+                        350: parseInt(document.getElementById('rw-350').value) || 0,
+                        450: parseInt(document.getElementById('rw-450').value) || 0
+                    };
+                }
+
+                lastParams = { level, target, objective, reward_weights };
+
+                calculateBtn.disabled = true;
+                calculateBtn.innerHTML = '<span class="loading-spinner"></span><span>计算中...</span>';
+                mcValidateBtn.disabled = true;
+
+                const worker = new Worker('solver-worker.js');
+                worker.onmessage = function(evt) {
+                    const { success, p, e_val, r_val, node_probs, tree, memo_action, start_shield, start_boost, start_lucky, target: resultTarget } = evt.data;
+
+                    if (success) {
+                        // 存入 lastParams 供 MC 验证使用
+                        lastParams = { level, target, objective, reward_weights, node_probs, r_val, e_val };
+
+                        // 动态结果展示：max_reward 模式显示 P/E/R/R-E比，其他模式保持原样
+                        const successRateEl = document.getElementById('success-rate');
+                        const energyEl = document.getElementById('energy-consumption');
+                        const targetDistEl = document.getElementById('target-distance');
+                        const optTargetEl = document.getElementById('optimization-target');
+                        const energyLabelEl = energyEl.previousElementSibling;
+                        const targetDistLabelEl = targetDistEl.previousElementSibling;
+                        const optTargetLabelEl = optTargetEl.previousElementSibling;
+
+                        if (objective === 'max_reward') {
+                            successRateEl.textContent = (p * 100).toFixed(4) + '%';
+                            energyEl.textContent = e_val.toFixed(2);
+                            energyLabelEl.textContent = '总能量 E';
+                            targetDistEl.textContent = r_val.toFixed(2);
+                            targetDistLabelEl.textContent = '总奖励 R';
+                            optTargetEl.textContent = (e_val > 1e-12 ? (r_val / e_val).toFixed(4) : '0');
+                            optTargetLabelEl.textContent = 'R/E 比';
+
+                            // 渲染预计装备件数表格
+                            const forecastCard = document.getElementById('reward-forecast-card');
+                            const forecastBody = document.getElementById('forecast-table-body');
+                            const forecastInfo = document.getElementById('forecast-info');
+                            const energyBudget = parseInt(mcSimulationsInput.value) || 100000;
+                            let html = '';
+                            let totalForecastReward = 0;
+                            let totalForecastCount = 0;
+                            const nodes = [100, 200, 300, 350, 450];
+                            for (const n of nodes) {
+                                const prob = node_probs ? (node_probs[n] || 0) : 0;
+                                const forecastCount = e_val > 1e-12 ? energyBudget * prob / e_val : 0;
+                                const weight = reward_weights[n] || 0;
+                                totalForecastReward += forecastCount * weight;
+                                totalForecastCount += forecastCount;
+                                html += '<tr>';
+                                html += '<td style="padding: 8px; border-bottom: 1px solid #eee;">' + n + 'm</td>';
+                                html += '<td style="padding: 8px; text-align: right; border-bottom: 1px solid #eee;">' + weight + '</td>';
+                                html += '<td style="padding: 8px; text-align: right; border-bottom: 1px solid #eee;">' + (prob * 100).toFixed(4) + '%</td>';
+                                html += '<td style="padding: 8px; text-align: right; border-bottom: 1px solid #eee;">' + forecastCount.toFixed(2) + '</td>';
+                                html += '<td style="padding: 8px; text-align: right; border-bottom: 1px solid #eee;">' + (energyBudget > 0 ? (forecastCount / energyBudget).toFixed(6) : '0') + '</td>';
+                                html += '</tr>';
+                            }
+                            // 总件数行
+                            html += '<tr style="background: #f8f9fa; font-weight: bold;">';
+                            html += '<td style="padding: 8px; border-top: 2px solid #ddd;">总件数</td>';
+                            html += '<td style="padding: 8px; text-align: right; border-top: 2px solid #ddd; color: #999;">—</td>';
+                            html += '<td style="padding: 8px; text-align: right; border-top: 2px solid #ddd; color: #999;">—</td>';
+                            html += '<td style="padding: 8px; text-align: right; border-top: 2px solid #ddd;">' + totalForecastCount.toFixed(2) + '</td>';
+                            html += '<td style="padding: 8px; text-align: right; border-top: 2px solid #ddd;">' + (energyBudget > 0 ? (totalForecastCount / energyBudget).toFixed(6) : '0') + '</td>';
+                            html += '</tr>';
+                            forecastBody.innerHTML = html;
+                            forecastInfo.textContent = '能量预算: ' + energyBudget.toLocaleString() + ' | 预计局数: ' + (e_val > 1e-12 ? (energyBudget / e_val).toFixed(1) : '0') + ' | 总件数: ' + totalForecastCount.toFixed(2) + ' | 总预计奖励: ' + totalForecastReward.toFixed(2);
+                            forecastCard.style.display = 'block';
+                        } else {
+                            successRateEl.textContent = (p * 100).toFixed(4) + '%';
+                            energyEl.textContent = (e_val / p).toFixed(2);
+                            energyLabelEl.textContent = '期望能量消耗';
+                            targetDistEl.textContent = resultTarget + 'm';
+                            targetDistLabelEl.textContent = '目标距离';
+                            optTargetEl.textContent = '冲距离';
+                            optTargetLabelEl.textContent = '优化目标';
+                            document.getElementById('reward-forecast-card').style.display = 'none';
+                        }
+
+                        const mainPath = extractMainPath(tree);
+                        currentMainPath = mainPath; // 保存主线供一图流使用
+                        document.getElementById('flowchart-container').innerHTML = renderFlowchart(mainPath);
+                        document.getElementById('failure-branch-detail').innerHTML = '';
+                        currentFailureIdx = -1;
+                        document.getElementById('flowchart-card').style.display = 'block';
+                        document.getElementById('one-image-btn').style.display = 'inline-block';
+
+                        mcValidateBtn.disabled = false;
+                        document.getElementById('mc-card').style.display = 'block';
+                        document.getElementById('mc-table-body').innerHTML = '<tr><td colspan="5" style="padding: 20px; text-align: center; color: #999;">点击"蒙特卡洛验证"按钮开始</td></tr>';
+                        document.getElementById('mc-info').textContent = '';
+                    } else {
+                        alert('计算出错：' + evt.data.error);
+                    }
+
+                    worker.terminate();
+                    calculateBtn.disabled = false;
+                    calculateBtn.innerHTML = '<span>开始计算</span>';
+                };
+                worker.onerror = function(err) {
+                    alert('Worker错误：' + err.message);
+                    worker.terminate();
+                    calculateBtn.disabled = false;
+                    calculateBtn.innerHTML = '<span>开始计算</span>';
+                };
+                worker.postMessage({ level, target, objective, reward_weights });
+            });
+
+            mcValidateBtn.addEventListener('click', function() {
+                if (!lastParams) return;
+                const n = parseInt(mcSimulationsInput.value) || 100000;
+
+                mcValidateBtn.disabled = true;
+                mcValidateBtn.innerHTML = '<span class="loading-spinner"></span><span>模拟中...</span>';
+                document.getElementById('mc-table-body').innerHTML = '<tr><td colspan="5" style="padding: 20px; text-align: center; color: #666;">蒙特卡洛模拟运行中（' + n.toLocaleString() + ' 次）...</td></tr>';
+
+                const worker = new Worker('solver-worker.js');
+                worker.onmessage = function(evt) {
+                    const { success, p, e_val, mc_result, error } = evt.data;
+                    if (success && mc_result) {
+                        if (mc_result.type === 'reward') {
+                            const energyBudget = mc_result.energy_budget;
+                            renderMcRewardResult(lastParams.r_val, lastParams.e_val, lastParams.node_probs, mc_result, energyBudget, lastParams.reward_weights);
+                        } else {
+                            renderMcResult(p, e_val, mc_result);
+                        }
+                    } else {
+                        document.getElementById('mc-table-body').innerHTML = '<tr><td colspan="5" style="padding: 20px; text-align: center; color: #dc2626;">错误: ' + (error || '未知错误') + '</td></tr>';
+                    }
+                    worker.terminate();
+                    mcValidateBtn.disabled = false;
+                    mcValidateBtn.innerHTML = '<span>蒙特卡洛验证</span>';
+                };
+                worker.onerror = function(err) {
+                    alert('Worker错误：' + err.message);
+                    worker.terminate();
+                    mcValidateBtn.disabled = false;
+                    mcValidateBtn.innerHTML = '<span>蒙特卡洛验证</span>';
+                };
+                worker.postMessage({
+                    level: lastParams.level,
+                    target: lastParams.target,
+                    objective: lastParams.objective,
+                    reward_weights: lastParams.reward_weights || null,
+                    mc_validate: true,
+                    n_simulations: n
+                });
+            });
+        });
+    </script>
+</body>
+</html>
