@@ -5,7 +5,7 @@ class LuckyRushSolver {
         this.target = target;
         this.start_shield = start_shield;
         this.start_boost = start_boost;
-        this.reward_weights = reward_weights || { 100: 1, 200: 2, 300: 4, 350: 8, 450: 16 };
+        this.reward_weights = reward_weights || { 100: 1, 200: 2, 300: 3, 350: 4, 450: 5 };
         this.success_rates = SUCCESS_RATES;
         this.lucky_levels = {
             1: { start_count: 1, max_count: 1, refill_point: 200, req_energy: 50 },
@@ -98,10 +98,13 @@ class LuckyRushSolver {
         return [new_shield, new_boost];
     }
     refill_lucky(old_pos, new_pos, lucky) {
-        if (new_pos >= this.refill_point && old_pos < this.refill_point) {
-            return Math.min(this.max_lucky, lucky + 1);
+        let new_lucky = lucky;
+        for (let m = this.refill_point; m <= new_pos; m += this.refill_point) {
+            if (old_pos < m) {
+                new_lucky = Math.min(this.max_lucky, new_lucky + 1);
+            }
         }
-        return lucky;
+        return new_lucky;
     }
     cap_state(state) {
         const [pos, shield, boost, lucky] = state;

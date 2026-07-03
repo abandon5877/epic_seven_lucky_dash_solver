@@ -16,7 +16,7 @@ class LuckyRushSolver:
         self.target = target
         self.start_shield = start_shield
         self.start_boost = start_boost
-        self.reward_weights = reward_weights or {100: 1, 200: 2, 300: 4, 350: 8, 450: 16}
+        self.reward_weights = reward_weights or {100: 1, 200: 2, 300: 3, 350: 4, 450: 5}
 
         self.success_rates = {
             0: 1.0, 10: 0.96, 20: 0.92, 30: 0.88, 40: 0.84, 50: 0.80,
